@@ -2,9 +2,8 @@
  * Configuration Settings for RRB ALP CBT-2 Result Checker
  */
 const CONFIG = {
-  // Replace with your Google Apps Script Web App URL after deployment:
-  // Example: "https://script.google.com/macros/s/AKfycbx.../exec"
-  GOOGLE_SCRIPT_URL: "", 
+  // Google Apps Script Web App URL:
+  GOOGLE_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbwEdaoWdR_c_Pwj6loa5khKVHkwtn5Xobfro7H1SKcs2wj0X7j2TYRfb7QUAih8L9s0_w/exec", 
 
   // Exam Details
   EXAM_TITLE: "Railway Recruitment Board (RRB)",

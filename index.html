@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RRB ALP CBT-2 Result Checker | CEN 01/2024</title>
+  <meta name="description" content="Check RRB Assistant Loco Pilot (ALP) CBT-2 Result, CBAT Shortlist Status, and Zone-wise Cutoff & Roll Number List.">
+  
+  <!-- Google Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Indian Tricolor Accent -->
+  <div class="tricolor-stripe"></div>
+
+  <!-- Confetti Canvas for Qualified Candidates -->
+  <canvas id="confettiCanvas"></canvas>
+
+  <!-- Portal Header -->
+  <header class="portal-header">
+    <div class="header-inner">
+      <div class="brand-section">
+        <div class="emblem-icon">🚆</div>
+        <div class="brand-titles">
+          <h1>Railway Recruitment Boards (RRB)</h1>
+          <p>CEN 01/2024 - Assistant Loco Pilot (ALP) Recruitment</p>
+        </div>
+      </div>
+      <div class="header-badge">
+        <span class="pulse-dot"></span>
+        <span>CBT-2 Result Released</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Wrapper -->
+  <main class="main-wrapper">
+
+    <!-- Notification Banner -->
+    <div class="notification-banner">
+      <div>
+        <span class="live-tag">NEW UPDATE</span>
+        <strong>RRB Jammu - Srinagar</strong> CBT-2 results are live with 45 shortlisted candidates. Other zones are being updated.
+      </div>
+    </div>
+
+    <!-- Result Check Card -->
+    <section class="card form-card">
+      <div class="card-header">
+        <h2>
+          <span>🔍</span> Check CBT-2 Result / CBAT Shortlist Status
+        </h2>
+        <span class="cen-badge">CEN 01/2024</span>
+      </div>
+
+      <div class="card-body">
+        <form id="resultForm" autocomplete="off">
+          <div class="form-grid">
+
+            <!-- Full Name -->
+            <div class="form-group">
+              <label for="candidateName" class="form-label">
+                Candidate Full Name <span class="required-star">*</span>
+              </label>
+              <div class="input-container">
+                <span class="input-icon">👤</span>
+                <input 
+                  type="text" 
+                  id="candidateName" 
+                  class="form-control" 
+                  placeholder="Enter your full name" 
+                  required
+                  minlength="3"
+                >
+              </div>
+              <span class="form-hint">As printed on your RRB Admit Card</span>
+            </div>
+
+            <!-- Mobile Number -->
+            <div class="form-group">
+              <label for="mobileNumber" class="form-label">
+                Mobile Number <span class="required-star">*</span>
+              </label>
+              <div class="input-container">
+                <span class="input-icon">📱</span>
+                <input 
+                  type="tel" 
+                  id="mobileNumber" 
+                  class="form-control" 
+                  placeholder="10-digit mobile number" 
+                  maxlength="10" 
+                  pattern="[0-9]{10}"
+                  required
+                >
+              </div>
+              <span class="form-hint">Registered mobile number</span>
+            </div>
+
+            <!-- RRB Zone Dropdown -->
+            <div class="form-group">
+              <label for="rrbZone" class="form-label">
+                Select Applied RRB Zone <span class="required-star">*</span>
+              </label>
+              <div class="input-container">
+                <span class="input-icon">🏛️</span>
+                <select id="rrbZone" class="form-control" required>
+                  <option value="">-- Choose RRB Board / Zone --</option>
+                  <!-- Populated dynamically via JS -->
+                </select>
+              </div>
+              <div id="zoneStatusInfo"></div>
+            </div>
+
+            <!-- Roll Number -->
+            <div class="form-group">
+              <label for="rollNumber" class="form-label">
+                Roll Number <span class="required-star">*</span>
+              </label>
+              <div class="input-container">
+                <span class="input-icon">🎫</span>
+                <input 
+                  type="text" 
+                  id="rollNumber" 
+                  class="form-control" 
+                  placeholder="Enter 16-digit Roll Number" 
+                  maxlength="18" 
+                  required
+                >
+              </div>
+              <span class="form-hint">E.g., 2112512100001143</span>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="form-group full-width">
+              <button type="submit" id="btnSubmit" class="btn-submit">
+                <span class="spinner" id="btnSpinner"></span>
+                <span id="btnText">CHECK CBT-2 RESULT</span>
+                <span>➔</span>
+              </button>
+            </div>
+
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- Results Display Section -->
+    <section id="resultContainer" class="result-container">
+      <!-- Dynamic result injected here via app.js -->
+    </section>
+
+    <!-- All Zones Directory & Status -->
+    <section class="zones-accordion-card">
+      <div class="zones-header" id="zonesHeaderToggle">
+        <h3>
+          <span>📍</span> RRB Zones Status Overview (21 Railway Boards)
+        </h3>
+        <span id="toggleIcon">▼</span>
+      </div>
+      <div class="zones-grid" id="zonesGrid">
+        <!-- Rendered via JS -->
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Portal Footer -->
+  <footer class="portal-footer">
+    <div class="footer-links">
+      <a href="https://www.rrcb.gov.in" target="_blank" rel="noopener">Official RRB Portal</a>
+      <a href="https://docs.google.com/spreadsheets/d/1fxWD05wWUKwjVtU2Rc9RoyrPUq-4uxSlhyqA3TjU47g" target="_blank" rel="noopener">Admin Database</a>
+      <a href="#resultForm">Check Another Result</a>
+    </div>
+    <p>© 2026 Railway Recruitment Boards (RRB) Result Verification Widget. For student convenience.</p>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="config.js"></script>
+  <script src="results-data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

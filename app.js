@@ -1,13 +1,10 @@
 /**
- * RRB ALP CBT-2 Result Checker - Client-side Logic
+ * RRB ALP CBT-2 Result Checker - Compact Widget Logic
  */
 
 document.addEventListener("DOMContentLoaded", () => {
   initZoneSelect();
-  initZonesGrid();
   initFormHandler();
-  initZoneChangeWatcher();
-  initZonesToggle();
 });
 
 /**
@@ -17,10 +14,8 @@ function initZoneSelect() {
   const select = document.getElementById("rrbZone");
   if (!select) return;
 
-  // Clear existing options except default
-  select.innerHTML = `<option value="">-- Choose RRB Board / Zone --</option>`;
+  select.innerHTML = `<option value="">Select Zone</option>`;
 
-  // Sort: Available zones first, then alphabetical
   const zoneKeys = Object.keys(RRB_ZONES).sort((a, b) => {
     const zoneA = RRB_ZONES[a];
     const zoneB = RRB_ZONES[b];
@@ -33,82 +28,15 @@ function initZoneSelect() {
     const zone = RRB_ZONES[key];
     const opt = document.createElement("option");
     opt.value = key;
-    const statusIcon = zone.status === "available" ? "🟢 [LIVE] " : "⏳ ";
-    const countInfo = zone.status === "available" ? ` (${zone.totalShortlisted} Shortlisted)` : " (Soon)";
-    opt.textContent = `${statusIcon}${zone.name}${countInfo}`;
+    const prefix = zone.status === "available" ? "🟢 " : "⏳ ";
+    const suffix = zone.status === "available" ? " (Live)" : "";
+    opt.textContent = `${prefix}${zone.name}${suffix}`;
     select.appendChild(opt);
   });
 }
 
 /**
- * Handle zone selection change
- */
-function initZoneChangeWatcher() {
-  const select = document.getElementById("rrbZone");
-  const infoContainer = document.getElementById("zoneStatusInfo");
-
-  select.addEventListener("change", (e) => {
-    const zoneKey = e.target.value;
-    if (!zoneKey || !RRB_ZONES[zoneKey]) {
-      infoContainer.innerHTML = "";
-      return;
-    }
-
-    const zone = RRB_ZONES[zoneKey];
-    if (zone.status === "available") {
-      infoContainer.innerHTML = `
-        <span class="zone-status-badge available">
-          ✓ Results Live: ${zone.totalShortlisted} candidates shortlisted for CBAT
-        </span>
-      `;
-    } else {
-      infoContainer.innerHTML = `
-        <span class="zone-status-badge coming_soon">
-          ⏳ PDF Results awaiting release from ${zone.name}
-        </span>
-      `;
-    }
-  });
-}
-
-/**
- * Render Zones Status Grid in bottom section
- */
-function initZonesGrid() {
-  const grid = document.getElementById("zonesGrid");
-  if (!grid) return;
-
-  grid.innerHTML = "";
-
-  Object.keys(RRB_ZONES).forEach((key) => {
-    const zone = RRB_ZONES[key];
-    const isAvailable = zone.status === "available";
-
-    const chip = document.createElement("div");
-    chip.className = `zone-chip ${isAvailable ? "active-zone" : ""}`;
-    chip.innerHTML = `
-      <div>
-        <div class="zone-chip-name">${zone.name}</div>
-        <small style="color: #64748b;">${zone.code} • ${zone.region}</small>
-      </div>
-      <span class="chip-status ${isAvailable ? "ready" : "wait"}">
-        ${isAvailable ? `✓ ${zone.totalShortlisted} Listed` : "Pending"}
-      </span>
-    `;
-
-    chip.addEventListener("click", () => {
-      const select = document.getElementById("rrbZone");
-      select.value = key;
-      select.dispatchEvent(new Event("change"));
-      document.getElementById("resultForm").scrollIntoView({ behavior: "smooth" });
-    });
-
-    grid.appendChild(chip);
-  });
-}
-
-/**
- * Form Submit & Result Verification
+ * Handle Result Verification Form Submit
  */
 function initFormHandler() {
   const form = document.getElementById("resultForm");
@@ -125,9 +53,8 @@ function initFormHandler() {
     const zoneKey = document.getElementById("rrbZone").value;
     const rollNumber = document.getElementById("rollNumber").value.trim().replace(/\s+/g, "");
 
-    // Validation
     if (!name || name.length < 2) {
-      alert("Please enter a valid candidate name.");
+      alert("Please enter candidate full name.");
       return;
     }
 
@@ -141,32 +68,29 @@ function initFormHandler() {
       return;
     }
 
-    if (!rollNumber || rollNumber.length < 8) {
-      alert("Please enter a valid Roll Number.");
+    if (!rollNumber || rollNumber.length < 6) {
+      alert("Please enter your Roll Number.");
       return;
     }
 
-    // Set Loading state
+    // Loading State
     btnSubmit.disabled = true;
     btnSpinner.style.display = "inline-block";
-    btnText.textContent = "VERIFYING RESULT...";
+    btnText.textContent = "Checking...";
 
-    // Small artificial delay for pleasant UI experience
-    await new Promise((r) => setTimeout(r, 600));
+    await new Promise((r) => setTimeout(r, 450));
 
     const zone = RRB_ZONES[zoneKey];
-    let resultStatus = "PENDING";
+    let resultStatus = "ZONE PENDING";
     let isQualified = false;
 
     if (zone.status === "available") {
       isQualified = zone.rolls.includes(rollNumber);
       resultStatus = isQualified ? "QUALIFIED" : "NOT QUALIFIED";
-    } else {
-      resultStatus = "ZONE RESULT PENDING";
     }
 
-    // Display Result UI
-    renderResult(name, mobile, rollNumber, zone, isQualified, zone.status === "available");
+    // Render Compact Result Card
+    renderCompactResult(name, mobile, rollNumber, zone, isQualified, zone.status === "available");
 
     // Asynchronously send to Google Sheets
     sendDataToGoogleSheet({
@@ -179,222 +103,119 @@ function initFormHandler() {
       userAgent: navigator.userAgent
     });
 
-    // Reset button
+    // Reset Button
     btnSubmit.disabled = false;
     btnSpinner.style.display = "none";
-    btnText.textContent = "CHECK CBT-2 RESULT";
-
-    // Scroll to result
-    resultContainer.scrollIntoView({ behavior: "smooth", block: "start" });
+    btnText.textContent = "Check Result";
   });
 }
 
 /**
- * Render the Result Card
+ * Render Compact Result UI
  */
-function renderResult(name, mobile, rollNumber, zone, isQualified, isZoneAvailable) {
+function renderCompactResult(name, mobile, rollNumber, zone, isQualified, isZoneAvailable) {
   const container = document.getElementById("resultContainer");
   container.style.display = "block";
 
-  const today = new Date().toLocaleDateString("en-IN", {
-    day: "numeric",
-    month: "long",
-    year: "numeric"
-  });
-
   if (!isZoneAvailable) {
+    container.className = "compact-result-box pending";
     container.innerHTML = `
-      <div class="result-box pending">
-        <div class="status-badge-lg">
-          <span>⏳</span> Result Awaiting Release
-        </div>
-        <h3 class="result-heading" style="color: #92400e;">Results for ${zone.name} Are Being Uploaded</h3>
-        <p class="result-subtext">
-          The official merit list for <strong>${zone.name}</strong> is currently awaiting release or under compilation. Please check back shortly.
-        </p>
-
-        <div class="candidate-slip">
-          <div class="slip-item">
-            <span class="slip-item-label">Candidate Name</span>
-            <span class="slip-item-value">${escapeHtml(name)}</span>
-          </div>
-          <div class="slip-item">
-            <span class="slip-item-label">Roll Number</span>
-            <span class="slip-item-value highlight-roll">${escapeHtml(rollNumber)}</span>
-          </div>
-          <div class="slip-item">
-            <span class="slip-item-label">Applied RRB Zone</span>
-            <span class="slip-item-value">${zone.name}</span>
-          </div>
-          <div class="slip-item">
-            <span class="slip-item-label">Check Date</span>
-            <span class="slip-item-value">${today}</span>
-          </div>
-        </div>
-
-        <div class="action-buttons">
-          <a href="${zone.officialWebsite}" target="_blank" class="btn-action btn-official">
-            🌐 Visit Official ${zone.name} Website
-          </a>
-          <button onclick="document.getElementById('rrbZone').focus()" class="btn-action btn-print">
-            🔄 Check Another Zone
-          </button>
-        </div>
+      <div class="result-badge">⏳ Awaiting Release</div>
+      <div class="res-name">${escapeHtml(zone.name)}</div>
+      <div class="res-desc">Results for this zone are being uploaded. Please check back shortly.</div>
+      <div class="res-actions">
+        <a href="${zone.officialWebsite}" target="_blank" class="btn-mini btn-reset">Official Website</a>
       </div>
     `;
     return;
   }
 
   if (isQualified) {
-    // Launch celebratory confetti
     triggerConfetti();
-
+    container.className = "compact-result-box qualified";
     container.innerHTML = `
-      <div class="result-box qualified">
-        <div class="status-badge-lg">
-          <span>🎉</span> PROVISIONALLY SHORTLISTED FOR CBAT (STAGE 3)
+      <div class="result-badge">🎉 Qualified for CBAT (Stage 3)</div>
+      <div class="res-name">Congratulations, ${escapeHtml(name)}!</div>
+      <div class="res-desc">Your roll number is shortlisted in ${zone.name}.</div>
+      
+      <div class="res-grid">
+        <div class="res-cell">
+          <small>Roll Number</small>
+          <span style="font-family: monospace;">${escapeHtml(rollNumber)}</span>
         </div>
-        <h3 class="result-heading">Congratulations, ${escapeHtml(name)}!</h3>
-        <p class="result-subtext">
-          Your Roll Number <strong>${escapeHtml(rollNumber)}</strong> is shortlisted in the official CBT-2 merit list for <strong>${zone.name}</strong>.
-        </p>
+        <div class="res-cell">
+          <small>Applied Zone</small>
+          <span>${zone.name}</span>
+        </div>
+      </div>
 
-        <div class="candidate-slip">
-          <div class="slip-item">
-            <span class="slip-item-label">Candidate Name</span>
-            <span class="slip-item-value">${escapeHtml(name)}</span>
-          </div>
-          <div class="slip-item">
-            <span class="slip-item-label">Roll Number</span>
-            <span class="slip-item-value highlight-roll">${escapeHtml(rollNumber)}</span>
-          </div>
-          <div class="slip-item">
-            <span class="slip-item-label">Applied Zone</span>
-            <span class="slip-item-value">${zone.name} (${zone.code})</span>
-          </div>
-          <div class="slip-item">
-            <span class="slip-item-label">CBT-2 Result Status</span>
-            <span class="slip-item-value" style="color: #15803d; font-weight: 800;">✓ QUALIFIED FOR CBAT</span>
-          </div>
-          <div class="slip-item">
-            <span class="slip-item-label">Next Stage</span>
-            <span class="slip-item-value">Computer Based Aptitude Test (CBAT)</span>
-          </div>
-          <div class="slip-item">
-            <span class="slip-item-label">Verification Date</span>
-            <span class="slip-item-value">${today}</span>
-          </div>
-        </div>
-
-        <div class="instructions-card">
-          <h4><span>📌</span> Important Instructions for Shortlisted Candidates:</h4>
-          <ul>
-            <li><strong>CBAT Examination:</strong> The Computer Based Aptitude Test (CBAT) will be conducted shortly. City intimation and E-Call letters will be uploaded on the official RRB website.</li>
-            <li><strong>Medical Fitness & Vision:</strong> Candidates must produce the Vision Certificate in the prescribed format (Annexure VI) from an eye specialist at the time of CBAT.</li>
-            <li><strong>Minimum Qualifying Score:</strong> Candidates need to secure a minimum of 42 marks in each of the test batteries to qualify in CBAT.</li>
-          </ul>
-        </div>
-
-        <div class="action-buttons">
-          <button onclick="window.print()" class="btn-action btn-print">
-            🖨️ Print / Save Result Slip (PDF)
-          </button>
-          <a href="https://api.whatsapp.com/send?text=${encodeURIComponent(`🎉 I have QUALIFIED RRB ALP CBT-2 for ${zone.name}! Roll No: ${rollNumber}. Check yours here!`)}" target="_blank" class="btn-action btn-share">
-            💬 Share on WhatsApp
-          </a>
-          <a href="${zone.officialWebsite}" target="_blank" class="btn-action btn-official">
-            🌐 Official RRB Portal
-          </a>
-        </div>
+      <div class="res-actions">
+        <a href="https://api.whatsapp.com/send?text=${encodeURIComponent(`🎉 I QUALIFIED RRB ALP CBT-2 (${zone.name})! Roll No: ${rollNumber}`)}" target="_blank" class="btn-mini btn-whatsapp">
+          💬 Share on WhatsApp
+        </a>
+        <button onclick="document.getElementById('rollNumber').focus()" class="btn-mini btn-reset">
+          🔄 Check Another
+        </button>
       </div>
     `;
   } else {
+    container.className = "compact-result-box not-qualified";
     container.innerHTML = `
-      <div class="result-box not-qualified">
-        <div class="status-badge-lg">
-          <span>ℹ️</span> NOT IN CURRENT SHORTLIST
+      <div class="result-badge">ℹ️ Not In Shortlist</div>
+      <div class="res-name">Roll No: ${escapeHtml(rollNumber)}</div>
+      <div class="res-desc">Not found in current shortlisted candidates for ${zone.name}.</div>
+      
+      <div class="res-grid">
+        <div class="res-cell">
+          <small>Candidate</small>
+          <span>${escapeHtml(name)}</span>
         </div>
-        <h3 class="result-heading">Roll Number Not Found in ${zone.name} List</h3>
-        <p class="result-subtext">
-          Roll Number <strong>${escapeHtml(rollNumber)}</strong> was not found in the PDF list of ${zone.totalShortlisted} candidates shortlisted for CBAT from ${zone.name}.
-        </p>
+        <div class="res-cell">
+          <small>Zone</small>
+          <span>${zone.name}</span>
+        </div>
+      </div>
 
-        <div class="candidate-slip">
-          <div class="slip-item">
-            <span class="slip-item-label">Candidate Name</span>
-            <span class="slip-item-value">${escapeHtml(name)}</span>
-          </div>
-          <div class="slip-item">
-            <span class="slip-item-label">Roll Number Checked</span>
-            <span class="slip-item-value highlight-roll">${escapeHtml(rollNumber)}</span>
-          </div>
-          <div class="slip-item">
-            <span class="slip-item-label">RRB Zone Checked</span>
-            <span class="slip-item-value">${zone.name}</span>
-          </div>
-          <div class="slip-item">
-            <span class="slip-item-label">Check Date</span>
-            <span class="slip-item-value">${today}</span>
-          </div>
-        </div>
-
-        <div class="instructions-card">
-          <h4><span>💡</span> What should you do?</h4>
-          <ul>
-            <li>Please double check your 16-digit Roll Number and ensure you selected the correct applied RRB Zone.</li>
-            <li>Individual scorecards and cutoff marks will be available through candidate login on the official RRB website.</li>
-          </ul>
-        </div>
-
-        <div class="action-buttons">
-          <a href="${zone.officialWebsite}" target="_blank" class="btn-action btn-official">
-            🌐 Visit Official ${zone.name} Portal
-          </a>
-          <button onclick="document.getElementById('rollNumber').focus()" class="btn-action btn-print">
-            🔄 Check Again
-          </button>
-        </div>
+      <div class="res-actions">
+        <a href="${zone.officialWebsite}" target="_blank" class="btn-mini btn-reset">
+          🌐 Official Portal
+        </a>
+        <button onclick="document.getElementById('rollNumber').focus()" class="btn-mini btn-reset">
+          🔄 Retry
+        </button>
       </div>
     `;
   }
 }
 
 /**
- * Asynchronously Send Candidate Data to Google Sheets via Apps Script Web App
+ * Async send to Google Apps Script
  */
 async function sendDataToGoogleSheet(payload) {
   const scriptUrl = CONFIG.GOOGLE_SCRIPT_URL;
 
-  // Save in localStorage as a backup log
   try {
     const history = JSON.parse(localStorage.getItem("rrb_alp_searches") || "[]");
     history.push(payload);
-    localStorage.setItem("rrb_alp_searches", JSON.stringify(history.slice(-50)));
+    localStorage.setItem("rrb_alp_searches", JSON.stringify(history.slice(-30)));
   } catch (e) {}
 
-  if (!scriptUrl || scriptUrl.trim() === "") {
-    console.warn("Google Apps Script URL is not configured yet. Configure it in config.js");
-    return;
-  }
+  if (!scriptUrl || scriptUrl.trim() === "") return;
 
   try {
-    // Mode no-cors avoids browser CORS preflight blocking
     await fetch(scriptUrl, {
       method: "POST",
       mode: "no-cors",
-      headers: {
-        "Content-Type": "text/plain"
-      },
+      headers: { "Content-Type": "text/plain" },
       body: JSON.stringify(payload)
     });
-    console.log("Candidate data synced to Google Sheet successfully.");
-  } catch (error) {
-    console.error("Error sending data to Google Sheet:", error);
+  } catch (err) {
+    console.error("Sync error:", err);
   }
 }
 
 /**
- * Lightweight Pure JavaScript Confetti Effect
+ * Lightweight Confetti Effect
  */
 function triggerConfetti() {
   const canvas = document.getElementById("confettiCanvas");
@@ -405,18 +226,18 @@ function triggerConfetti() {
   canvas.height = window.innerHeight;
 
   const particles = [];
-  const colors = ["#10b981", "#3b82f6", "#f59e0b", "#ec4899", "#8b5cf6", "#ef4444", "#ffffff"];
+  const colors = ["#10b981", "#3b82f6", "#f59e0b", "#ec4899", "#8b5cf6", "#ef4444"];
 
-  for (let i = 0; i < 120; i++) {
+  for (let i = 0; i < 70; i++) {
     particles.push({
       x: canvas.width * 0.5,
-      y: canvas.height * 0.4,
-      vx: (Math.random() - 0.5) * 18,
-      vy: (Math.random() - 0.7) * 18,
-      size: Math.random() * 8 + 4,
+      y: canvas.height * 0.45,
+      vx: (Math.random() - 0.5) * 14,
+      vy: (Math.random() - 0.7) * 14,
+      size: Math.random() * 6 + 3,
       color: colors[Math.floor(Math.random() * colors.length)],
       rotation: Math.random() * 360,
-      rotationSpeed: (Math.random() - 0.5) * 12,
+      rotationSpeed: (Math.random() - 0.5) * 10,
       opacity: 1
     });
   }
@@ -431,11 +252,11 @@ function triggerConfetti() {
     particles.forEach((p) => {
       p.x += p.vx;
       p.y += p.vy;
-      p.vy += 0.35; // Gravity
-      p.vx *= 0.98; // Air resistance
+      p.vy += 0.3;
+      p.vx *= 0.98;
       p.rotation += p.rotationSpeed;
-      if (elapsed > 1800) {
-        p.opacity = Math.max(0, p.opacity - 0.02);
+      if (elapsed > 1200) {
+        p.opacity = Math.max(0, p.opacity - 0.03);
       }
 
       ctx.save();
@@ -447,7 +268,7 @@ function triggerConfetti() {
       ctx.restore();
     });
 
-    if (elapsed < 3500) {
+    if (elapsed < 2400) {
       animationFrame = requestAnimationFrame(animate);
     } else {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -456,23 +277,6 @@ function triggerConfetti() {
   }
 
   animate();
-}
-
-/**
- * Toggle Zones Directory View
- */
-function initZonesToggle() {
-  const header = document.getElementById("zonesHeaderToggle");
-  const grid = document.getElementById("zonesGrid");
-  const icon = document.getElementById("toggleIcon");
-
-  if (!header || !grid) return;
-
-  header.addEventListener("click", () => {
-    const isHidden = grid.style.display === "none";
-    grid.style.display = isHidden ? "grid" : "none";
-    icon.textContent = isHidden ? "▼" : "▲";
-  });
 }
 
 function escapeHtml(str) {

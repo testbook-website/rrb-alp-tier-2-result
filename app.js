@@ -85,7 +85,7 @@ function initFormHandler() {
     let isQualified = false;
 
     if (zone.status === "available") {
-      isQualified = zone.rolls.includes(rollNumber);
+      isQualified = zone._set ? zone._set.has(rollNumber) : zone.rolls.includes(rollNumber);
       resultStatus = isQualified ? "QUALIFIED" : "NOT QUALIFIED";
     }
 
